@@ -103,18 +103,27 @@ function formatAuthorsVancouver(authors: string[]): string {
   return `${authors.slice(0, 6).join(', ')}, et al.`
 }
 
+function escapeBibTeXValue(value: string): string {
+  // Escape special characters for BibTeX
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/{/g, '\\{')
+    .replace(/}/g, '\\}')
+    .replace(/"/g, '\\"')
+}
+
 export function generateBibTeX(paper: Partial<Paper>): string {
   const id = paper.id || 'unknown'
-  const title = paper.title || 'Untitled'
-  const authors = (paper.authors || []).join(' and ')
+  const title = escapeBibTeXValue(paper.title || 'Untitled')
+  const authors = (paper.authors || []).map(a => escapeBibTeXValue(a)).join(' and ')
   const year = paper.publicationDate ? new Date(paper.publicationDate).getFullYear() : ''
-  const venue = paper.venue || ''
-  const doi = paper.doi || ''
+  const venue = escapeBibTeXValue(paper.venue || '')
+  const doi = escapeBibTeXValue(paper.doi || '')
 
   return `@article{${id},
-  title={${title}},
+  title={{${title}}},
   author={${authors}},
-  journal={${venue}},
+  journal={{${venue}}},
   year={${year}},
   doi={${doi}}
 }`

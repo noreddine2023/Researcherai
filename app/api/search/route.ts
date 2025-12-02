@@ -68,8 +68,19 @@ export async function GET(request: Request) {
 
     // Remove duplicates based on DOI or title
     const uniqueResults = results.reduce((acc, paper) => {
-      const key = paper.doi || paper.title
-      if (!acc.some((p: any) => (p.doi === paper.doi && paper.doi) || p.title === paper.title)) {
+      const existingPaper = acc.find((p: any) => {
+        // Match by DOI if both papers have DOI
+        if (paper.doi && p.doi && p.doi === paper.doi) {
+          return true
+        }
+        // Match by title as fallback
+        if (p.title.toLowerCase() === paper.title.toLowerCase()) {
+          return true
+        }
+        return false
+      })
+      
+      if (!existingPaper) {
         acc.push(paper)
       }
       return acc

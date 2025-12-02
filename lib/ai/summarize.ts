@@ -1,5 +1,11 @@
 import OpenAI from 'openai'
 
+// Configuration constants
+const MAX_FULL_TEXT_LENGTH = 4000
+const AI_MODEL = 'gpt-3.5-turbo'
+const SUMMARY_MAX_TOKENS = 1000
+const WRITING_MAX_TOKENS = 500
+
 const openai = process.env.OPENAI_API_KEY 
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null
@@ -25,6 +31,7 @@ export async function summarizePaper(
 
   try {
     const content = fullText || abstract || title
+    const truncatedText = fullText ? fullText.substring(0, MAX_FULL_TEXT_LENGTH) : content
 
     const prompt = `Analyze this research paper and provide:
 1. A concise summary (2-3 sentences)
@@ -34,12 +41,12 @@ export async function summarizePaper(
 
 Paper: ${title}
 ${abstract ? `\nAbstract: ${abstract}` : ''}
-${fullText ? `\nFull text: ${fullText.substring(0, 4000)}` : ''}
+${fullText ? `\nFull text: ${truncatedText}` : ''}
 
 Format your response as JSON with keys: summary, methodology, findings, limitations`
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: AI_MODEL,
       messages: [
         {
           role: 'system',
@@ -51,7 +58,7 @@ Format your response as JSON with keys: summary, methodology, findings, limitati
         },
       ],
       temperature: 0.7,
-      max_tokens: 1000,
+      max_tokens: SUMMARY_MAX_TOKENS,
     })
 
     const result = response.choices[0]?.message?.content
@@ -62,7 +69,11 @@ Format your response as JSON with keys: summary, methodology, findings, limitati
 
     try {
       return JSON.parse(result)
-    } catch {
+    } catch (parseError) {
+      // Log parsing error for debugging
+      console.error('Failed to parse OpenAI response as JSON:', parseError)
+      console.error('Raw response:', result)
+      
       // If JSON parsing fails, return a basic structure
       return {
         summary: result,
@@ -92,7 +103,7 @@ export async function generateWritingAssistance(
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: AI_MODEL,
       messages: [
         {
           role: 'system',
@@ -104,7 +115,7 @@ export async function generateWritingAssistance(
         },
       ],
       temperature: 0.8,
-      max_tokens: 500,
+      max_tokens: WRITING_MAX_TOKENS,
     })
 
     return response.choices[0]?.message?.content || 'Unable to generate text'
