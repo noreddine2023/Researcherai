@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  name          String?
+  password      String
+  image         String?
+  collections   Collection[]
+  papers        Paper[]
+  insights      InsightCard[]
+  annotations   Annotation[]
+  documents     Document[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Paper {
+  id              String            @id @default(cuid())
+  title           String
+  authors         String[]
+  abstract        String?
+  publicationDate DateTime?
+  venue           String?
+  doi             String?           @unique
+  citationCount   Int               @default(0)
+  pdfUrl          String?
+  summary         String?
+  methodology     String?
+  findings        String?
+  limitations     String?
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collections     CollectionPaper[]
+  annotations     Annotation[]
+  insights        InsightCard[]
+  citations       Citation[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model Collection {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  parentId    String?
+  parent      Collection?       @relation("CollectionHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Collection[]      @relation("CollectionHierarchy")
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  papers      CollectionPaper[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model CollectionPaper {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  paperId      String
+  paper        Paper      @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  notes        String?
+  tags         String[]
+  createdAt    DateTime   @default(now())
+
+  @@unique([collectionId, paperId])
+}
+
+model Annotation {
+  id         String   @id @default(cuid())
+  content    String
+  highlight  String?
+  color      String   @default("yellow")
+  pageNumber Int?
+  paperId    String
+  paper      Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model InsightCard {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  type      String   @default("finding")
+  tags      String[]
+  status    String   @default("backlog")
+  paperId   String?
+  paper     Paper?   @relation(fields: [paperId], references: [id], onDelete: SetNull)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Citation {
+  id        String   @id @default(cuid())
+  paperId   String
+  paper     Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  style     String   @default("apa")
+  formatted String
+  createdAt DateTime @default(now())
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
