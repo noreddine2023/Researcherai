@@ -1,15 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { Search as SearchIcon, Filter } from 'lucide-react'
+import { Search as SearchIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
+import { PaperCard } from '@/components/search/PaperCard'
+import { SearchFilters } from '@/components/search/SearchFilters'
+import { useRouter } from 'next/navigation'
 
 export default function SearchPage() {
+  const router = useRouter()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [filters, setFilters] = useState<any>({})
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,12 +32,40 @@ export default function SearchPage() {
     }
   }
 
+  const handleSavePaper = async (paper: any) => {
+    try {
+      const response = await fetch('/api/papers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: paper.title,
+          authors: paper.authors || [],
+          abstract: paper.abstract,
+          publicationDate: paper.publicationDate,
+          venue: paper.venue,
+          doi: paper.doi,
+          citationCount: paper.citationCount || 0,
+          pdfUrl: paper.pdfUrl,
+        }),
+      })
+
+      if (response.ok) {
+        const savedPaper = await response.json()
+        alert('Paper saved successfully!')
+        router.push(`/papers/${savedPaper.id}`)
+      }
+    } catch (error) {
+      console.error('Save error:', error)
+      alert('Failed to save paper')
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Search Papers</h2>
         <p className="text-muted-foreground">
-          Search across 200M+ academic papers
+          Search across 200M+ academic papers from Semantic Scholar, OpenAlex, and Crossref
         </p>
       </div>
 
@@ -52,12 +85,11 @@ export default function SearchPage() {
             <Button type="submit" disabled={isLoading}>
               {isLoading ? 'Searching...' : 'Search'}
             </Button>
-            <Button type="button" variant="outline">
-              <Filter className="h-4 w-4" />
-            </Button>
           </form>
         </CardContent>
       </Card>
+
+      <SearchFilters onFilterChange={setFilters} />
 
       {results.length > 0 && (
         <div className="space-y-4">
@@ -65,29 +97,11 @@ export default function SearchPage() {
             Found {results.length} results
           </div>
           {results.map((paper, index) => (
-            <Card key={index}>
-              <CardHeader>
-                <CardTitle className="text-lg">{paper.title}</CardTitle>
-                <div className="text-sm text-muted-foreground">
-                  {paper.authors?.slice(0, 3).join(', ')}
-                  {paper.authors?.length > 3 && ' et al.'}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  {paper.abstract?.substring(0, 200)}
-                  {paper.abstract?.length > 200 && '...'}
-                </p>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  {paper.venue && <span>{paper.venue}</span>}
-                  {paper.publicationDate && (
-                    <span>{new Date(paper.publicationDate).getFullYear()}</span>
-                  )}
-                  <span>{paper.citationCount} citations</span>
-                  {paper.source && <span className="text-blue-600">{paper.source}</span>}
-                </div>
-              </CardContent>
-            </Card>
+            <PaperCard
+              key={index}
+              paper={paper}
+              onSave={handleSavePaper}
+            />
           ))}
         </div>
       )}
