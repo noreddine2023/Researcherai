@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BookmarkPlus, ExternalLink } from 'lucide-react'
+import { BookmarkPlus, ExternalLink, Info } from 'lucide-react'
 import { useState } from 'react'
 
 interface PaperCardProps {
@@ -19,9 +19,10 @@ interface PaperCardProps {
     source?: string
   }
   onSave?: (paper: any) => void
+  onViewDetails?: (paper: any) => void
 }
 
-export function PaperCard({ paper, onSave }: PaperCardProps) {
+export function PaperCard({ paper, onSave, onViewDetails }: PaperCardProps) {
   const [isSaving, setIsSaving] = useState(false)
 
   const handleSave = async () => {
@@ -39,20 +40,37 @@ export function PaperCard({ paper, onSave }: PaperCardProps) {
     : null
 
   return (
-    <Card className="hover:shadow-lg transition">
+    <Card className="hover:shadow-lg transition cursor-pointer" onClick={() => onViewDetails?.(paper)}>
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <CardTitle className="text-lg leading-tight">{paper.title}</CardTitle>
-          {onSave && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              <BookmarkPlus className="w-4 h-4" />
-            </Button>
-          )}
+          <div className="flex gap-1">
+            {onViewDetails && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onViewDetails(paper)
+                }}
+              >
+                <Info className="w-4 h-4" />
+              </Button>
+            )}
+            {onSave && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSave()
+                }}
+                disabled={isSaving}
+              >
+                <BookmarkPlus className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
         <div className="text-sm text-muted-foreground">
           {paper.authors?.slice(0, 3).join(', ')}
@@ -79,7 +97,12 @@ export function PaperCard({ paper, onSave }: PaperCardProps) {
             )}
           </div>
           {paper.pdfUrl && (
-            <Button size="sm" variant="ghost" asChild>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              asChild
+              onClick={(e) => e.stopPropagation()}
+            >
               <a href={paper.pdfUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-3 h-3" />
               </a>

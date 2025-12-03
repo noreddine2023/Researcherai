@@ -45,3 +45,6 @@ prisma/*.db-journal
 *.swp
 *.swo
 *~
+
+# Uploads
+public/uploads/
