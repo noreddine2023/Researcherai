@@ -41,17 +41,17 @@ export function PaperCard({ paper, onSave, onViewDetails }: PaperCardProps) {
     : null
 
   return (
-    <Card className="hover:shadow-lg transition cursor-pointer" onClick={() => !paper.id && onViewDetails?.(paper)}>
+    <Card className="hover:shadow-lg transition" onClick={() => !paper.id && onViewDetails?.(paper)}>
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           {paper.id ? (
             <Link href={`/papers/${paper.id}`} onClick={(e) => e.stopPropagation()}>
-              <CardTitle className="text-lg leading-tight hover:text-blue-600 transition">
+              <CardTitle className="text-lg leading-tight hover:text-blue-600 transition cursor-pointer">
                 {paper.title}
               </CardTitle>
             </Link>
           ) : (
-            <CardTitle className="text-lg leading-tight">{paper.title}</CardTitle>
+            <CardTitle className="text-lg leading-tight cursor-pointer">{paper.title}</CardTitle>
           )}
           <div className="flex gap-1">
             {onViewDetails && (
