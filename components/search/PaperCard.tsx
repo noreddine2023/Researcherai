@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BookmarkPlus, ExternalLink, Info } from 'lucide-react'
 import { useState } from 'react'
+import Link from 'next/link'
 
 interface PaperCardProps {
   paper: {
@@ -40,10 +41,18 @@ export function PaperCard({ paper, onSave, onViewDetails }: PaperCardProps) {
     : null
 
   return (
-    <Card className="hover:shadow-lg transition cursor-pointer" onClick={() => onViewDetails?.(paper)}>
+    <Card className="hover:shadow-lg transition cursor-pointer" onClick={() => !paper.id && onViewDetails?.(paper)}>
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
-          <CardTitle className="text-lg leading-tight">{paper.title}</CardTitle>
+          {paper.id ? (
+            <Link href={`/papers/${paper.id}`} onClick={(e) => e.stopPropagation()}>
+              <CardTitle className="text-lg leading-tight hover:text-blue-600 transition">
+                {paper.title}
+              </CardTitle>
+            </Link>
+          ) : (
+            <CardTitle className="text-lg leading-tight">{paper.title}</CardTitle>
+          )}
           <div className="flex gap-1">
             {onViewDetails && (
               <Button

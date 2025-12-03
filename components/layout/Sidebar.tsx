@@ -2,15 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Brain, LayoutDashboard, Search, FolderOpen, Lightbulb, FileText, Settings } from 'lucide-react'
+import { Brain, LayoutDashboard, Search, FolderOpen, Lightbulb, FileText, Settings, PenTool } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Search', href: '/search', icon: Search },
+  { name: 'Papers', href: '/papers', icon: FileText },
   { name: 'Collections', href: '/collections', icon: FolderOpen },
   { name: 'Insights', href: '/insights', icon: Lightbulb },
-  { name: 'Write', href: '/write', icon: FileText },
+  { name: 'Write', href: '/write', icon: PenTool },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
