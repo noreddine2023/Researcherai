@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PaperActions } from '@/components/papers/PaperActions'
+import { PaperCollections } from '@/components/papers/PaperCollections'
 
 async function getPaper(id: string, userId: string) {
   return await prisma.paper.findFirst({
@@ -43,7 +44,7 @@ export default async function PaperDetailPage({ params }: { params: { id: string
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold mb-2">{paper.title}</h1>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
           <span>{paper.authors.join(', ')}</span>
           {paper.venue && <span>• {paper.venue}</span>}
           {paper.publicationDate && (
@@ -60,6 +61,19 @@ export default async function PaperDetailPage({ params }: { params: { id: string
         uploadedPdfPath={paper.uploadedPdfPath}
         onPdfUploaded={() => {}}
       />
+
+      {/* Collections */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Collections</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PaperCollections
+            paperId={paper.id}
+            collections={paper.collections.map(cp => cp.collection)}
+          />
+        </CardContent>
+      </Card>
 
       {/* Abstract */}
       {paper.abstract && (

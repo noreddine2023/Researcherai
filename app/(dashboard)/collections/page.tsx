@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { FolderOpen, Plus, Trash2, FolderIcon } from 'lucide-react'
+import { FolderOpen, Plus, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -13,13 +13,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import Link from 'next/link'
+import { CollectionTree } from '@/components/collections/CollectionTree'
+
+interface CollectionNode {
+  id: string
+  name: string
+  description: string | null
+  parentId: string | null
+  paperCount: number
+  children: CollectionNode[]
+}
 
 export default function CollectionsPage() {
-  const [collections, setCollections] = useState<any[]>([])
+  const [collections, setCollections] = useState<CollectionNode[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newCollection, setNewCollection] = useState({ name: '', description: '' })
+  const [newCollection, setNewCollection] = useState({ name: '', description: '', parentId: '' })
   const [isCreating, setIsCreating] = useState(false)
 
   useEffect(() => {
@@ -29,9 +38,9 @@ export default function CollectionsPage() {
   const fetchCollections = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/collections')
+      const response = await fetch('/api/collections/tree')
       const data = await response.json()
-      setCollections(data.collections || [])
+      setCollections(data.tree || [])
     } catch (error) {
       console.error('Failed to fetch collections:', error)
     } finally {
@@ -45,14 +54,20 @@ export default function CollectionsPage() {
 
     setIsCreating(true)
     try {
+      const payload = {
+        name: newCollection.name,
+        description: newCollection.description || undefined,
+        parentId: newCollection.parentId || undefined,
+      }
+      
       const response = await fetch('/api/collections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCollection),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
-        setNewCollection({ name: '', description: '' })
+        setNewCollection({ name: '', description: '', parentId: '' })
         setIsDialogOpen(false)
         fetchCollections()
       } else {
@@ -67,7 +82,7 @@ export default function CollectionsPage() {
   }
 
   const handleDeleteCollection = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this collection?')) return
+    if (!confirm('Are you sure you want to delete this collection? This will also delete all subcollections.')) return
 
     try {
       const response = await fetch(`/api/collections?id=${id}`, {
@@ -91,7 +106,7 @@ export default function CollectionsPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Collections</h2>
           <p className="text-muted-foreground">
-            Organize your papers into collections
+            Organize your papers into collections and subcollections
           </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -163,47 +178,14 @@ export default function CollectionsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {collections.map((collection) => (
-            <Card key={collection.id} className="hover:shadow-lg transition">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <FolderIcon className="w-5 h-5 text-blue-600" />
-                    <CardTitle className="text-lg">{collection.name}</CardTitle>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleDeleteCollection(collection.id)
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4 text-red-600" />
-                  </Button>
-                </div>
-                {collection.description && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {collection.description}
-                  </p>
-                )}
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    {collection.papers?.length || 0} papers
-                  </span>
-                  <Link href={`/collections/${collection.id}`}>
-                    <Button size="sm" variant="outline">
-                      View
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Collections</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CollectionTree collections={collections} />
+          </CardContent>
+        </Card>
       )}
     </div>
   )

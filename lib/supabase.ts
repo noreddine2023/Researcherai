@@ -3,20 +3,25 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.warn('Supabase configuration is missing. PDF storage features will not work.')
-}
+// Create a Supabase client only if credentials are provided
+export const supabase = supabaseUrl && supabaseServiceKey 
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : null
 
-// Create a Supabase client with service role for server-side operations
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseServiceKey)
 
 // Helper function to get a signed URL for a PDF
 export async function getSignedPdfUrl(path: string, expiresIn = 3600): Promise<string | null> {
+  if (!supabase) {
+    console.warn('Supabase is not configured')
+    return null
+  }
+
   try {
     const { data, error } = await supabase.storage
       .from('papers')
@@ -41,6 +46,10 @@ export async function uploadPdf(
   file: Buffer,
   contentType = 'application/pdf'
 ): Promise<{ path: string; error: null } | { path: null; error: string }> {
+  if (!supabase) {
+    return { path: null, error: 'Supabase is not configured' }
+  }
+
   try {
     const path = `papers/${userId}/${paperId}/document.pdf`
     
@@ -65,6 +74,10 @@ export async function uploadPdf(
 
 // Helper function to delete a PDF
 export async function deletePdf(path: string): Promise<{ error: null } | { error: string }> {
+  if (!supabase) {
+    return { error: 'Supabase is not configured' }
+  }
+
   try {
     const { error } = await supabase.storage
       .from('papers')
@@ -81,3 +94,4 @@ export async function deletePdf(path: string): Promise<{ error: null } | { error
     return { error: 'Failed to delete PDF' }
   }
 }
+
