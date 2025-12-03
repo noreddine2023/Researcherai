@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
+import { randomBytes } from 'crypto'
 
 export async function POST(
   request: Request,
@@ -15,6 +16,11 @@ export async function POST(
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Validate paper ID format (should be a cuid)
+    if (!/^[a-z0-9]{25}$/i.test(params.id)) {
+      return NextResponse.json({ error: 'Invalid paper ID' }, { status: 400 })
     }
 
     // Verify ownership
@@ -37,15 +43,20 @@ export async function POST(
       return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 })
     }
 
+    // Limit file size to 50MB
+    if (file.size > 50 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File size must be less than 50MB' }, { status: 400 })
+    }
+
     // Create uploads directory if it doesn't exist
     const uploadsDir = join(process.cwd(), 'public', 'uploads', 'papers')
     if (!existsSync(uploadsDir)) {
       await mkdir(uploadsDir, { recursive: true })
     }
 
-    // Generate unique filename
-    const timestamp = Date.now()
-    const filename = `${params.id}_${timestamp}.pdf`
+    // Generate secure random filename
+    const randomName = randomBytes(16).toString('hex')
+    const filename = `${randomName}.pdf`
     const filepath = join(uploadsDir, filename)
 
     // Save file
