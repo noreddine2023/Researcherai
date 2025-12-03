@@ -75,17 +75,23 @@ model CollectionPaper {
 }
 
 model Annotation {
-  id         String   @id @default(cuid())
-  content    String
-  highlight  String?
-  color      String   @default("yellow")
-  pageNumber Int?
-  paperId    String
-  paper      Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(cuid())
+  content      String
+  highlight    String?
+  color        String   @default("yellow")
+  pageNumber   Int?
+  paperId      String
+  paper        Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  positionX    Float?
+  positionY    Float?
+  startOffset  Int?
+  endOffset    Int?
+  type         String   @default("highlight")
+  drawingData  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model InsightCard {

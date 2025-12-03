@@ -4,9 +4,18 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Upload, FileText, Trash2 } from 'lucide-react'
-import Link from 'next/link'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ArrowLeft, Upload, FileText, Trash2, Plus, Folder } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import Link from 'next/link'
+import { useToast } from '@/components/ui/use-toast'
 
 export default function CollectionDetailPage() {
   const params = useParams()
@@ -14,6 +23,10 @@ export default function CollectionDetailPage() {
   const [collection, setCollection] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [uploadingPaperId, setUploadingPaperId] = useState<string | null>(null)
+  const [isSubcollectionDialogOpen, setIsSubcollectionDialogOpen] = useState(false)
+  const [newSubcollection, setNewSubcollection] = useState({ name: '', description: '' })
+  const [isCreating, setIsCreating] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     if (params.id) {
@@ -51,12 +64,24 @@ export default function CollectionDetailPage() {
 
       if (response.ok) {
         fetchCollection()
+        toast({
+          title: 'Success',
+          description: 'Paper removed from collection',
+        })
       } else {
-        alert('Failed to remove paper')
+        toast({
+          title: 'Error',
+          description: 'Failed to remove paper',
+          variant: 'destructive',
+        })
       }
     } catch (error) {
       console.error('Remove paper error:', error)
-      alert('Failed to remove paper')
+      toast({
+        title: 'Error',
+        description: 'Failed to remove paper',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -72,15 +97,26 @@ export default function CollectionDetailPage() {
       })
 
       if (response.ok) {
-        alert('PDF uploaded successfully!')
+        toast({
+          title: 'Success',
+          description: 'PDF uploaded successfully!',
+        })
         fetchCollection()
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to upload PDF')
+        toast({
+          title: 'Error',
+          description: error.error || 'Failed to upload PDF',
+          variant: 'destructive',
+        })
       }
     } catch (error) {
       console.error('Upload PDF error:', error)
-      alert('Failed to upload PDF')
+      toast({
+        title: 'Error',
+        description: 'Failed to upload PDF',
+        variant: 'destructive',
+      })
     } finally {
       setUploadingPaperId(null)
     }
@@ -90,6 +126,51 @@ export default function CollectionDetailPage() {
     const file = event.target.files?.[0]
     if (file) {
       handleUploadPdf(paperId, file)
+    }
+  }
+
+  const handleCreateSubcollection = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newSubcollection.name.trim()) return
+
+    setIsCreating(true)
+    try {
+      const payload = {
+        name: newSubcollection.name,
+        description: newSubcollection.description || undefined,
+        parentId: params.id,
+      }
+
+      const response = await fetch('/api/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (response.ok) {
+        setNewSubcollection({ name: '', description: '' })
+        setIsSubcollectionDialogOpen(false)
+        toast({
+          title: 'Success',
+          description: 'Subcollection created successfully!',
+        })
+        // Optionally navigate to collections page to see the tree
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to create subcollection',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      console.error('Create subcollection error:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to create subcollection',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -111,13 +192,61 @@ export default function CollectionDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/collections">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-        </Link>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/collections">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+        </div>
+        <Dialog open={isSubcollectionDialogOpen} onOpenChange={setIsSubcollectionDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              New Subcollection
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Subcollection</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateSubcollection} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="subname">Name</Label>
+                <Input
+                  id="subname"
+                  value={newSubcollection.name}
+                  onChange={(e) => setNewSubcollection({ ...newSubcollection, name: e.target.value })}
+                  placeholder="Subcollection name"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="subdescription">Description (optional)</Label>
+                <Input
+                  id="subdescription"
+                  value={newSubcollection.description}
+                  onChange={(e) => setNewSubcollection({ ...newSubcollection, description: e.target.value })}
+                  placeholder="Description..."
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsSubcollectionDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isCreating}>
+                  {isCreating ? 'Creating...' : 'Create'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div>
@@ -129,6 +258,32 @@ export default function CollectionDetailPage() {
           {collection.papers?.length || 0} papers
         </p>
       </div>
+
+      {/* Show subcollections if any */}
+      {collection.children && collection.children.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Subcollections</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {collection.children.map((child: any) => (
+                <Link key={child.id} href={`/collections/${child.id}`}>
+                  <div className="flex items-center gap-2 p-3 rounded-lg border hover:bg-accent transition cursor-pointer">
+                    <Folder className="w-5 h-5 text-blue-600" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{child.name}</p>
+                      {child.description && (
+                        <p className="text-xs text-muted-foreground truncate">{child.description}</p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {collection.papers && collection.papers.length > 0 ? (
         <div className="space-y-4">

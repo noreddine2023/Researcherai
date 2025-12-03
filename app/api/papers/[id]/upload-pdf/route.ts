@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
-import { randomBytes } from 'crypto'
+import { uploadPdf, getSignedPdfUrl } from '@/lib/supabase'
 
 export async function POST(
   request: Request,
@@ -48,32 +45,31 @@ export async function POST(
       return NextResponse.json({ error: 'File size must be less than 50MB' }, { status: 400 })
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'papers')
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
-
-    // Generate secure random filename
-    const randomName = randomBytes(16).toString('hex')
-    const filename = `${randomName}.pdf`
-    const filepath = join(uploadsDir, filename)
-
-    // Save file
+    // Convert file to buffer for Supabase upload
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filepath, buffer)
+
+    // Upload to Supabase Storage
+    const { path, error } = await uploadPdf(
+      session.user.id,
+      params.id,
+      buffer,
+      file.type
+    )
+
+    if (error) {
+      return NextResponse.json({ error }, { status: 500 })
+    }
 
     // Update paper with uploaded PDF path
-    const uploadedPdfPath = `/uploads/papers/${filename}`
     const updatedPaper = await prisma.paper.update({
       where: { id: params.id },
-      data: { uploadedPdfPath },
+      data: { uploadedPdfPath: path },
     })
 
     return NextResponse.json({ 
       success: true, 
-      uploadedPdfPath,
+      uploadedPdfPath: path,
       paper: updatedPaper 
     })
   } catch (error) {
