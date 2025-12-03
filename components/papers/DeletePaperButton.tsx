@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useToast } from '@/components/ui/use-toast'
 
 interface DeletePaperButtonProps {
   paperId: string
@@ -12,6 +13,7 @@ interface DeletePaperButtonProps {
 export function DeletePaperButton({ paperId }: DeletePaperButtonProps) {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
+  const { toast } = useToast()
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this paper? This will also remove all annotations and insights.')) {
@@ -25,13 +27,25 @@ export function DeletePaperButton({ paperId }: DeletePaperButtonProps) {
       })
 
       if (response.ok) {
+        toast({
+          title: 'Success',
+          description: 'Paper deleted successfully',
+        })
         router.refresh()
       } else {
-        alert('Failed to delete paper')
+        toast({
+          title: 'Error',
+          description: 'Failed to delete paper',
+          variant: 'destructive',
+        })
       }
     } catch (error) {
       console.error('Delete error:', error)
-      alert('Failed to delete paper')
+      toast({
+        title: 'Error',
+        description: 'Failed to delete paper',
+        variant: 'destructive',
+      })
     } finally {
       setIsDeleting(false)
     }

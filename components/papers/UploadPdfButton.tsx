@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useToast } from '@/components/ui/use-toast'
 
 interface UploadPdfButtonProps {
   paperId: string
@@ -13,6 +14,7 @@ interface UploadPdfButtonProps {
 export function UploadPdfButton({ paperId }: UploadPdfButtonProps) {
   const router = useRouter()
   const [isUploading, setIsUploading] = useState(false)
+  const { toast } = useToast()
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -29,15 +31,26 @@ export function UploadPdfButton({ paperId }: UploadPdfButtonProps) {
       })
 
       if (response.ok) {
-        alert('PDF uploaded successfully!')
+        toast({
+          title: 'Success',
+          description: 'PDF uploaded successfully!',
+        })
         router.refresh()
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to upload PDF')
+        toast({
+          title: 'Error',
+          description: error.error || 'Failed to upload PDF',
+          variant: 'destructive',
+        })
       }
     } catch (error) {
       console.error('Upload PDF error:', error)
-      alert('Failed to upload PDF')
+      toast({
+        title: 'Error',
+        description: 'Failed to upload PDF',
+        variant: 'destructive',
+      })
     } finally {
       setIsUploading(false)
     }
