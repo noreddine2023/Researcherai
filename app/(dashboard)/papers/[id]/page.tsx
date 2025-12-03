@@ -3,18 +3,11 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { FileText, Download, Quote } from 'lucide-react'
+import { PaperActions } from '@/components/papers/PaperActions'
 
-export default async function PaperDetailPage({ params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  
-  if (!session) {
-    redirect('/login')
-  }
-
-  const paper = await prisma.paper.findUnique({
-    where: { id: params.id },
+async function getPaper(id: string, userId: string) {
+  return await prisma.paper.findFirst({
+    where: { id, userId },
     include: {
       annotations: true,
       insights: true,
@@ -25,6 +18,16 @@ export default async function PaperDetailPage({ params }: { params: { id: string
       },
     },
   })
+}
+
+export default async function PaperDetailPage({ params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions)
+  
+  if (!session?.user?.id) {
+    redirect('/login')
+  }
+
+  const paper = await getPaper(params.id, session.user.id)
 
   if (!paper) {
     return (
@@ -51,24 +54,12 @@ export default async function PaperDetailPage({ params }: { params: { id: string
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2">
-        {paper.pdfUrl && (
-          <Button variant="outline" asChild>
-            <a href={paper.pdfUrl} target="_blank" rel="noopener noreferrer">
-              <FileText className="w-4 h-4 mr-2" />
-              View PDF
-            </a>
-          </Button>
-        )}
-        <Button variant="outline">
-          <Download className="w-4 h-4 mr-2" />
-          Download
-        </Button>
-        <Button variant="outline">
-          <Quote className="w-4 h-4 mr-2" />
-          Cite
-        </Button>
-      </div>
+      <PaperActions 
+        paperId={paper.id} 
+        pdfUrl={paper.pdfUrl}
+        uploadedPdfPath={paper.uploadedPdfPath}
+        onPdfUploaded={() => {}}
+      />
 
       {/* Abstract */}
       {paper.abstract && (

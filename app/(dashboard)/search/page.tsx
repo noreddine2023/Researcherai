@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { PaperCard } from '@/components/search/PaperCard'
+import { PaperDetailDialog } from '@/components/search/PaperDetailDialog'
 import { SearchFilters } from '@/components/search/SearchFilters'
 import { useRouter } from 'next/navigation'
 
@@ -15,6 +16,8 @@ export default function SearchPage() {
   const [results, setResults] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [filters, setFilters] = useState<any>({})
+  const [selectedPaper, setSelectedPaper] = useState<any>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,12 +55,16 @@ export default function SearchPage() {
       if (response.ok) {
         const savedPaper = await response.json()
         alert('Paper saved successfully!')
-        router.push(`/papers/${savedPaper.id}`)
       }
     } catch (error) {
       console.error('Save error:', error)
       alert('Failed to save paper')
     }
+  }
+
+  const handleViewDetails = (paper: any) => {
+    setSelectedPaper(paper)
+    setIsDetailOpen(true)
   }
 
   return (
@@ -101,6 +108,7 @@ export default function SearchPage() {
               key={index}
               paper={paper}
               onSave={handleSavePaper}
+              onViewDetails={handleViewDetails}
             />
           ))}
         </div>
@@ -113,6 +121,13 @@ export default function SearchPage() {
           </CardContent>
         </Card>
       )}
+
+      <PaperDetailDialog
+        paper={selectedPaper}
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        onSave={handleSavePaper}
+      />
     </div>
   )
 }

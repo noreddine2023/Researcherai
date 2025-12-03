@@ -32,6 +32,7 @@ model Paper {
   doi             String?           @unique
   citationCount   Int               @default(0)
   pdfUrl          String?
+  uploadedPdfPath String?
   summary         String?
   methodology     String?
   findings        String?
