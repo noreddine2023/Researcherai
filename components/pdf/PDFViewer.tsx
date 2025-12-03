@@ -162,7 +162,9 @@ export function PDFViewer({ fileUrl, fileName, paperId, onAnnotationCreate }: PD
             </Button>
             <div className="flex items-center gap-1">
               <Input
-                type="text"
+                type="number"
+                min={1}
+                max={numPages}
                 value={goToPage}
                 onChange={(e) => setGoToPage(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleGoToPage()}

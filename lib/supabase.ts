@@ -94,4 +94,3 @@ export async function deletePdf(path: string): Promise<{ error: null } | { error
     return { error: 'Failed to delete PDF' }
   }
 }
-

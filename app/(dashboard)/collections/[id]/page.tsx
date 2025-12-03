@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import Link from 'next/link'
+import { useToast } from '@/components/ui/use-toast'
 
 export default function CollectionDetailPage() {
   const params = useParams()
@@ -25,6 +26,7 @@ export default function CollectionDetailPage() {
   const [isSubcollectionDialogOpen, setIsSubcollectionDialogOpen] = useState(false)
   const [newSubcollection, setNewSubcollection] = useState({ name: '', description: '' })
   const [isCreating, setIsCreating] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     if (params.id) {
@@ -62,12 +64,24 @@ export default function CollectionDetailPage() {
 
       if (response.ok) {
         fetchCollection()
+        toast({
+          title: 'Success',
+          description: 'Paper removed from collection',
+        })
       } else {
-        alert('Failed to remove paper')
+        toast({
+          title: 'Error',
+          description: 'Failed to remove paper',
+          variant: 'destructive',
+        })
       }
     } catch (error) {
       console.error('Remove paper error:', error)
-      alert('Failed to remove paper')
+      toast({
+        title: 'Error',
+        description: 'Failed to remove paper',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -83,15 +97,26 @@ export default function CollectionDetailPage() {
       })
 
       if (response.ok) {
-        alert('PDF uploaded successfully!')
+        toast({
+          title: 'Success',
+          description: 'PDF uploaded successfully!',
+        })
         fetchCollection()
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to upload PDF')
+        toast({
+          title: 'Error',
+          description: error.error || 'Failed to upload PDF',
+          variant: 'destructive',
+        })
       }
     } catch (error) {
       console.error('Upload PDF error:', error)
-      alert('Failed to upload PDF')
+      toast({
+        title: 'Error',
+        description: 'Failed to upload PDF',
+        variant: 'destructive',
+      })
     } finally {
       setUploadingPaperId(null)
     }
@@ -125,14 +150,25 @@ export default function CollectionDetailPage() {
       if (response.ok) {
         setNewSubcollection({ name: '', description: '' })
         setIsSubcollectionDialogOpen(false)
-        alert('Subcollection created successfully!')
+        toast({
+          title: 'Success',
+          description: 'Subcollection created successfully!',
+        })
         // Optionally navigate to collections page to see the tree
       } else {
-        alert('Failed to create subcollection')
+        toast({
+          title: 'Error',
+          description: 'Failed to create subcollection',
+          variant: 'destructive',
+        })
       }
     } catch (error) {
       console.error('Create subcollection error:', error)
-      alert('Failed to create subcollection')
+      toast({
+        title: 'Error',
+        description: 'Failed to create subcollection',
+        variant: 'destructive',
+      })
     } finally {
       setIsCreating(false)
     }

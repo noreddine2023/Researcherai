@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus, X } from 'lucide-react'
 import { CollectionPicker } from '@/components/collections/CollectionPicker'
+import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/ui/use-toast'
 
 interface Collection {
   id: string
@@ -18,6 +20,8 @@ interface PaperCollectionsProps {
 export function PaperCollections({ paperId, collections: initialCollections }: PaperCollectionsProps) {
   const [collections, setCollections] = useState(initialCollections)
   const [showPicker, setShowPicker] = useState(false)
+  const router = useRouter()
+  const { toast } = useToast()
 
   const handleRemoveFromCollection = async (collectionId: string) => {
     if (!confirm('Remove this paper from the collection?')) return
@@ -30,19 +34,30 @@ export function PaperCollections({ paperId, collections: initialCollections }: P
 
       if (response.ok) {
         setCollections(collections.filter(c => c.id !== collectionId))
-        alert('Paper removed from collection')
+        toast({
+          title: 'Success',
+          description: 'Paper removed from collection',
+        })
       } else {
-        alert('Failed to remove paper from collection')
+        toast({
+          title: 'Error',
+          description: 'Failed to remove paper from collection',
+          variant: 'destructive',
+        })
       }
     } catch (error) {
       console.error('Failed to remove paper:', error)
-      alert('Failed to remove paper from collection')
+      toast({
+        title: 'Error',
+        description: 'Failed to remove paper from collection',
+        variant: 'destructive',
+      })
     }
   }
 
   const handleSuccess = () => {
-    // Refresh the page to show updated collections
-    window.location.reload()
+    // Refresh to show updated collections
+    router.refresh()
   }
 
   return (
