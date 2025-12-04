@@ -1,7 +1,10 @@
 'use client'
 
 import { useRef, useEffect, useState } from 'react'
-import { Annotation } from '@/hooks/usePdfAnnotations'
+import { Annotation, AnnotationCreate } from '@/hooks/usePdfAnnotations'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
 interface PdfAnnotationLayerProps {
   pageNumber: number
@@ -9,7 +12,7 @@ interface PdfAnnotationLayerProps {
   scale: number
   selectedTool: 'none' | 'highlight' | 'comment' | 'underline' | 'strikethrough'
   highlightColor: string
-  onAnnotationCreate: (annotation: any) => void
+  onAnnotationCreate: (annotation: AnnotationCreate) => void
   onAnnotationClick?: (annotation: Annotation) => void
   containerRef: React.RefObject<HTMLDivElement>
 }
@@ -29,6 +32,9 @@ export function PdfAnnotationLayer({
     text: string
     rects: DOMRect[]
   } | null>(null)
+  const [commentDialogOpen, setCommentDialogOpen] = useState(false)
+  const [commentPosition, setCommentPosition] = useState<{ x: number; y: number } | null>(null)
+  const [commentContent, setCommentContent] = useState('')
 
   // Handle text selection for highlighting
   useEffect(() => {
@@ -98,20 +104,33 @@ export function PdfAnnotationLayer({
     const x = ((e.clientX - rect.left) / rect.width) * 100
     const y = ((e.clientY - rect.top) / rect.height) * 100
 
-    const content = prompt('Enter your comment:')
-    if (content) {
+    setCommentPosition({ x, y })
+    setCommentDialogOpen(true)
+  }
+
+  const handleCommentSubmit = () => {
+    if (commentContent.trim() && commentPosition) {
       onAnnotationCreate({
         type: 'comment',
-        content,
+        content: commentContent.trim(),
         color: 'yellow',
         pageNumber,
-        positionX: x,
-        positionY: y,
+        positionX: commentPosition.x,
+        positionY: commentPosition.y,
       })
+      setCommentContent('')
+      setCommentDialogOpen(false)
+      setCommentPosition(null)
     }
   }
 
-  // Get color class for annotation
+  const handleCommentCancel = () => {
+    setCommentContent('')
+    setCommentDialogOpen(false)
+    setCommentPosition(null)
+  }
+
+  // Get color style for annotation
   const getColorStyle = (color: string, type: string) => {
     const opacity = type === 'highlight' ? '0.4' : '0.6'
     
@@ -129,71 +148,99 @@ export function PdfAnnotationLayer({
   const pageAnnotations = annotations.filter(a => a.pageNumber === pageNumber)
 
   return (
-    <div
-      ref={layerRef}
-      className="absolute inset-0 pointer-events-auto"
-      style={{ cursor: selectedTool === 'comment' ? 'crosshair' : 'default' }}
-      onClick={handleLayerClick}
-    >
-      {/* Render existing annotations */}
-      {pageAnnotations.map(annotation => {
-        if (annotation.type === 'comment' && annotation.positionX && annotation.positionY) {
-          return (
-            <div
-              key={annotation.id}
-              className="absolute w-6 h-6 rounded-full cursor-pointer hover:scale-110 transition-transform flex items-center justify-center text-xs font-bold shadow-lg"
-              style={{
-                left: `${annotation.positionX}%`,
-                top: `${annotation.positionY}%`,
-                backgroundColor: annotation.color,
-                transform: 'translate(-50%, -50%)',
-              }}
-              onClick={(e) => {
-                e.stopPropagation()
-                onAnnotationClick?.(annotation)
-              }}
-              title={annotation.content}
-            >
-              💬
-            </div>
-          )
-        }
-        
-        return null
-      })}
-
-      {/* Show current text selection highlight preview */}
-      {textSelection && selectedTool !== 'none' && selectedTool !== 'comment' && (
-        <div className="absolute inset-0 pointer-events-none">
-          {textSelection.rects.map((rect, index) => {
-            const containerRect = containerRef.current?.getBoundingClientRect()
-            if (!containerRect) return null
-
+    <>
+      <div
+        ref={layerRef}
+        className="absolute inset-0 pointer-events-auto"
+        style={{ cursor: selectedTool === 'comment' ? 'crosshair' : 'default' }}
+        onClick={handleLayerClick}
+      >
+        {/* Render existing annotations */}
+        {pageAnnotations.map(annotation => {
+          if (annotation.type === 'comment' && annotation.positionX && annotation.positionY) {
             return (
               <div
-                key={index}
-                className="absolute"
+                key={annotation.id}
+                className="absolute w-6 h-6 rounded-full cursor-pointer hover:scale-110 transition-transform flex items-center justify-center text-xs font-bold shadow-lg"
                 style={{
-                  left: rect.left - containerRect.left,
-                  top: rect.top - containerRect.top,
-                  width: rect.width,
-                  height: rect.height,
-                  backgroundColor: getColorStyle(highlightColor, selectedTool),
-                  ...(selectedTool === 'underline' && {
-                    backgroundColor: 'transparent',
-                    borderBottom: `2px solid ${getColorStyle(highlightColor, 'underline')}`,
-                  }),
-                  ...(selectedTool === 'strikethrough' && {
-                    backgroundColor: 'transparent',
-                    borderTop: `2px solid ${getColorStyle(highlightColor, 'strikethrough')}`,
-                    marginTop: rect.height / 2,
-                  }),
+                  left: `${annotation.positionX}%`,
+                  top: `${annotation.positionY}%`,
+                  backgroundColor: annotation.color,
+                  transform: 'translate(-50%, -50%)',
                 }}
-              />
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onAnnotationClick?.(annotation)
+                }}
+                title={annotation.content}
+              >
+                💬
+              </div>
             )
-          })}
-        </div>
-      )}
-    </div>
+          }
+          
+          return null
+        })}
+
+        {/* Show current text selection highlight preview */}
+        {textSelection && selectedTool !== 'none' && selectedTool !== 'comment' && (
+          <div className="absolute inset-0 pointer-events-none">
+            {textSelection.rects.map((rect, index) => {
+              const containerRect = containerRef.current?.getBoundingClientRect()
+              if (!containerRect) return null
+
+              return (
+                <div
+                  key={index}
+                  className="absolute"
+                  style={{
+                    left: rect.left - containerRect.left,
+                    top: rect.top - containerRect.top,
+                    width: rect.width,
+                    height: rect.height,
+                    backgroundColor: getColorStyle(highlightColor, selectedTool),
+                    ...(selectedTool === 'underline' && {
+                      backgroundColor: 'transparent',
+                      borderBottom: `2px solid ${getColorStyle(highlightColor, 'underline')}`,
+                    }),
+                    ...(selectedTool === 'strikethrough' && {
+                      backgroundColor: 'transparent',
+                      borderTop: `2px solid ${getColorStyle(highlightColor, 'strikethrough')}`,
+                      marginTop: rect.height / 2,
+                    }),
+                  }}
+                />
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Comment Dialog */}
+      <Dialog open={commentDialogOpen} onOpenChange={setCommentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Comment</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Enter your comment..."
+              value={commentContent}
+              onChange={(e) => setCommentContent(e.target.value)}
+              className="min-h-[100px]"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCommentCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleCommentSubmit} disabled={!commentContent.trim()}>
+              Add Comment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

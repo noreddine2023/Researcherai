@@ -21,7 +21,7 @@ import { PdfPage } from './PdfPage'
 import { PdfToolbar } from './PdfToolbar'
 import { PdfThumbnails } from './PdfThumbnails'
 import { PdfCommentSidebar } from './PdfCommentSidebar'
-import { usePdfAnnotations, Annotation } from '@/hooks/usePdfAnnotations'
+import { usePdfAnnotations, Annotation, AnnotationCreate } from '@/hooks/usePdfAnnotations'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
@@ -163,7 +163,7 @@ export function PdfViewer({ fileUrl, fileName, paperId }: PdfViewerProps) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [pageNumber, numPages])
 
-  const handleAnnotationCreate = async (annotation: any) => {
+  const handleAnnotationCreate = async (annotation: AnnotationCreate) => {
     await createAnnotation(annotation)
   }
 

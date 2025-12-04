@@ -23,7 +23,7 @@ export interface AnnotationCreate {
   highlight?: string
   color?: string
   pageNumber?: number
-  type?: 'highlight' | 'comment' | 'underline' | 'strikethrough'
+  type: 'highlight' | 'comment' | 'underline' | 'strikethrough'
   positionX?: number
   positionY?: number
   startOffset?: number

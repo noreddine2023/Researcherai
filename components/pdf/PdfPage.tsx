@@ -3,7 +3,7 @@
 import { useRef } from 'react'
 import { Page } from 'react-pdf'
 import { PdfAnnotationLayer } from './PdfAnnotationLayer'
-import { Annotation } from '@/hooks/usePdfAnnotations'
+import { Annotation, AnnotationCreate } from '@/hooks/usePdfAnnotations'
 
 interface PdfPageProps {
   pageNumber: number
@@ -12,7 +12,7 @@ interface PdfPageProps {
   annotations: Annotation[]
   selectedTool: 'none' | 'highlight' | 'comment' | 'underline' | 'strikethrough'
   highlightColor: string
-  onAnnotationCreate: (annotation: any) => void
+  onAnnotationCreate: (annotation: AnnotationCreate) => void
   onAnnotationClick?: (annotation: Annotation) => void
 }
 
