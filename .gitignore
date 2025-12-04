@@ -48,3 +48,6 @@ prisma/*.db-journal
 
 # Uploads
 public/uploads/
+
+# Old/backup files
+*.old
