@@ -38,6 +38,7 @@ export function PdfAnnotationLayer({
   const [textSelection, setTextSelection] = useState<{
     text: string
     rects: DOMRect[]
+    relativeRects?: HighlightRect[]
   } | null>(null)
   const [commentDialogOpen, setCommentDialogOpen] = useState(false)
   const [commentPosition, setCommentPosition] = useState<{ x: number; y: number } | null>(null)
@@ -64,10 +65,23 @@ export function PdfAnnotationLayer({
       const range = selection.getRangeAt(0)
       const rects = Array.from(range.getClientRects())
 
-      if (rects.length > 0) {
+      // Get container rect RIGHT NOW while we have the selection
+      const container = containerRef.current
+      const containerRect = container?.getBoundingClientRect()
+
+      if (rects.length > 0 && containerRect && containerRect.width > 0 && containerRect.height > 0) {
+        // Calculate relative positions immediately
+        const relativeRects = rects.map(rect => ({
+          left: ((rect.left - containerRect.left) / containerRect.width) * 100,
+          top: ((rect.top - containerRect.top) / containerRect.height) * 100,
+          width: (rect.width / containerRect.width) * 100,
+          height: (rect.height / containerRect.height) * 100,
+        }))
+
         setTextSelection({
           text: selectedText,
           rects: rects as DOMRect[],
+          relativeRects: relativeRects,
         })
       }
     }
@@ -86,16 +100,11 @@ export function PdfAnnotationLayer({
 
     const createFromSelection = () => {
       if (selectedTool === 'highlight' || selectedTool === 'underline' || selectedTool === 'strikethrough') {
-        // Calculate relative positions (as percentages) for the bounding rectangles
-        const containerRect = containerRef.current?.getBoundingClientRect()
-        const rects = containerRect && containerRect.width > 0 && containerRect.height > 0
-          ? textSelection.rects.map(rect => ({
-              left: ((rect.left - containerRect.left) / containerRect.width) * 100,
-              top: ((rect.top - containerRect.top) / containerRect.height) * 100,
-              width: (rect.width / containerRect.width) * 100,
-              height: (rect.height / containerRect.height) * 100,
-            }))
-          : []
+        // Only create annotation if we have valid position data
+        if (!textSelection.relativeRects || textSelection.relativeRects.length === 0) {
+          console.warn('Cannot create annotation: no position data available. This may happen if the container dimensions were not available during text selection.')
+          return
+        }
 
         onAnnotationCreate({
           type: selectedTool,
@@ -103,7 +112,7 @@ export function PdfAnnotationLayer({
           highlight: textSelection.text,
           color: highlightColor,
           pageNumber,
-          drawingData: JSON.stringify(rects),
+          drawingData: JSON.stringify(textSelection.relativeRects),
         })
       }
       
@@ -113,7 +122,7 @@ export function PdfAnnotationLayer({
     }
 
     createFromSelection()
-  }, [textSelection, selectedTool, highlightColor, pageNumber, onAnnotationCreate, containerRef])
+  }, [textSelection, selectedTool, highlightColor, pageNumber, onAnnotationCreate])
 
   // Handle click for comment tool
   const handleLayerClick = (e: React.MouseEvent<HTMLDivElement>) => {
