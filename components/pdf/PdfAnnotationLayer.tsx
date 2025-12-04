@@ -79,12 +79,22 @@ export function PdfAnnotationLayer({
 
     const createFromSelection = () => {
       if (selectedTool === 'highlight' || selectedTool === 'underline' || selectedTool === 'strikethrough') {
+        // Calculate relative positions (as percentages) for the bounding rectangles
+        const containerRect = containerRef.current?.getBoundingClientRect()
+        const rects = containerRect ? textSelection.rects.map(rect => ({
+          left: ((rect.left - containerRect.left) / containerRect.width) * 100,
+          top: ((rect.top - containerRect.top) / containerRect.height) * 100,
+          width: (rect.width / containerRect.width) * 100,
+          height: (rect.height / containerRect.height) * 100,
+        })) : []
+
         onAnnotationCreate({
           type: selectedTool,
           content: textSelection.text,
           highlight: textSelection.text,
           color: highlightColor,
           pageNumber,
+          drawingData: JSON.stringify(rects),
         })
       }
       
@@ -94,7 +104,7 @@ export function PdfAnnotationLayer({
     }
 
     createFromSelection()
-  }, [textSelection, selectedTool, highlightColor, pageNumber, onAnnotationCreate])
+  }, [textSelection, selectedTool, highlightColor, pageNumber, onAnnotationCreate, containerRef])
 
   // Handle click for comment tool
   const handleLayerClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -157,6 +167,7 @@ export function PdfAnnotationLayer({
       >
         {/* Render existing annotations */}
         {pageAnnotations.map(annotation => {
+          // Render comment annotations
           if (annotation.type === 'comment' && annotation.positionX && annotation.positionY) {
             return (
               <div
@@ -177,6 +188,47 @@ export function PdfAnnotationLayer({
                 💬
               </div>
             )
+          }
+          
+          // Render highlight, underline, and strikethrough annotations
+          if ((annotation.type === 'highlight' || annotation.type === 'underline' || annotation.type === 'strikethrough') && annotation.drawingData) {
+            try {
+              const rects = JSON.parse(annotation.drawingData)
+              return (
+                <div key={annotation.id} className="pointer-events-none">
+                  {rects.map((rect: any, index: number) => (
+                    <div
+                      key={index}
+                      className="absolute pointer-events-auto cursor-pointer hover:opacity-80 transition-opacity"
+                      style={{
+                        left: `${rect.left}%`,
+                        top: `${rect.top}%`,
+                        width: `${rect.width}%`,
+                        height: `${rect.height}%`,
+                        backgroundColor: annotation.type === 'highlight' 
+                          ? getColorStyle(annotation.color, 'highlight') 
+                          : 'transparent',
+                        borderBottom: annotation.type === 'underline' 
+                          ? `2px solid ${getColorStyle(annotation.color, 'underline')}` 
+                          : 'none',
+                        ...(annotation.type === 'strikethrough' && {
+                          borderTop: `2px solid ${getColorStyle(annotation.color, 'strikethrough')}`,
+                          marginTop: `${rect.height / 2}%`,
+                        }),
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAnnotationClick?.(annotation)
+                      }}
+                      title={annotation.content}
+                    />
+                  ))}
+                </div>
+              )
+            } catch (e) {
+              console.error('Failed to parse annotation drawingData:', e)
+              return null
+            }
           }
           
           return null
