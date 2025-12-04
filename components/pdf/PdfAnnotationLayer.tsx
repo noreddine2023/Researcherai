@@ -102,7 +102,7 @@ export function PdfAnnotationLayer({
       if (selectedTool === 'highlight' || selectedTool === 'underline' || selectedTool === 'strikethrough') {
         // Only create annotation if we have valid position data
         if (!textSelection.relativeRects || textSelection.relativeRects.length === 0) {
-          console.warn('Cannot create annotation: no position data available')
+          console.warn('Cannot create annotation: no position data available. This may happen if the container dimensions were not available during text selection.')
           return
         }
 
