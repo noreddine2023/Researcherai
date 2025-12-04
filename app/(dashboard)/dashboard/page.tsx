@@ -3,6 +3,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, FolderOpen, Lightbulb, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
@@ -103,7 +104,11 @@ export default async function DashboardPage() {
               {recentPapers.map((paper) => (
                 <div key={paper.id} className="flex items-start justify-between border-b pb-4 last:border-0">
                   <div className="space-y-1">
-                    <h4 className="font-medium leading-none">{paper.title}</h4>
+                    <Link href={`/papers/${paper.id}`}>
+                      <h4 className="font-medium leading-none hover:text-blue-600 cursor-pointer transition">
+                        {paper.title}
+                      </h4>
+                    </Link>
                     <p className="text-sm text-muted-foreground">
                       {paper.authors.slice(0, 3).join(', ')}
                       {paper.authors.length > 3 && ' et al.'}
