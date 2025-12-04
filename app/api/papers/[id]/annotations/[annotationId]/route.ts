@@ -13,7 +13,7 @@ const annotationUpdateSchema = z.object({
   positionY: z.number().optional(),
   startOffset: z.number().optional(),
   endOffset: z.number().optional(),
-  type: z.enum(['highlight', 'note', 'drawing']).optional(),
+  type: z.enum(['highlight', 'note', 'drawing', 'comment', 'underline', 'strikethrough']).optional(),
   drawingData: z.string().optional(),
 })
 

@@ -5,34 +5,19 @@ import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { PDFViewer } from '@/components/pdf/PDFViewer'
-import { AnnotationPanel } from '@/components/pdf/AnnotationPanel'
+import { PdfViewer } from '@/components/pdf/PdfViewer'
 import { Card, CardContent } from '@/components/ui/card'
-
-interface Annotation {
-  id: string
-  content: string
-  highlight?: string | null
-  color: string
-  pageNumber?: number | null
-  type: string
-  createdAt: string
-  updatedAt: string
-}
 
 export default function PaperPDFPage() {
   const params = useParams()
   const router = useRouter()
   const [paper, setPaper] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [annotations, setAnnotations] = useState<Annotation[]>([])
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (params.id) {
       fetchPaper()
-      fetchAnnotations()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
@@ -68,71 +53,6 @@ export default function PaperPDFPage() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const fetchAnnotations = async () => {
-    try {
-      const response = await fetch(`/api/papers/${params.id}/annotations`)
-      if (response.ok) {
-        const data = await response.json()
-        setAnnotations(data.annotations)
-      }
-    } catch (error) {
-      console.error('Failed to fetch annotations:', error)
-    }
-  }
-
-  const handleAnnotationCreate = async (annotation: any) => {
-    try {
-      const response = await fetch(`/api/papers/${params.id}/annotations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(annotation),
-      })
-
-      if (response.ok) {
-        const newAnnotation = await response.json()
-        setAnnotations([...annotations, newAnnotation])
-      }
-    } catch (error) {
-      console.error('Failed to create annotation:', error)
-    }
-  }
-
-  const handleAnnotationUpdate = async (id: string, content: string) => {
-    try {
-      const response = await fetch(`/api/papers/${params.id}/annotations/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      })
-
-      if (response.ok) {
-        const updated = await response.json()
-        setAnnotations(annotations.map(a => a.id === id ? updated : a))
-      }
-    } catch (error) {
-      console.error('Failed to update annotation:', error)
-    }
-  }
-
-  const handleAnnotationDelete = async (id: string) => {
-    try {
-      const response = await fetch(`/api/papers/${params.id}/annotations/${id}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        setAnnotations(annotations.filter(a => a.id !== id))
-      }
-    } catch (error) {
-      console.error('Failed to delete annotation:', error)
-    }
-  }
-
-  const handleAnnotationClick = (annotation: Annotation) => {
-    // TODO: Scroll to annotation in PDF
-    console.log('Navigate to annotation:', annotation)
   }
 
   if (isLoading) {
@@ -192,23 +112,11 @@ export default function PaperPDFPage() {
         </div>
       </div>
 
-      <div className="flex gap-4 h-full">
-        <div className="flex-1 min-w-0">
-          <PDFViewer
-            fileUrl={pdfUrl}
-            fileName={`${paper.title}.pdf`}
-            paperId={params.id as string}
-            onAnnotationCreate={handleAnnotationCreate}
-          />
-        </div>
-        <AnnotationPanel
+      <div className="h-full">
+        <PdfViewer
+          fileUrl={pdfUrl}
+          fileName={`${paper.title}.pdf`}
           paperId={params.id as string}
-          annotations={annotations}
-          onAnnotationUpdate={handleAnnotationUpdate}
-          onAnnotationDelete={handleAnnotationDelete}
-          onAnnotationClick={handleAnnotationClick}
-          isCollapsed={isPanelCollapsed}
-          onToggleCollapse={() => setIsPanelCollapsed(!isPanelCollapsed)}
         />
       </div>
     </div>
