@@ -88,12 +88,14 @@ export function PdfAnnotationLayer({
       if (selectedTool === 'highlight' || selectedTool === 'underline' || selectedTool === 'strikethrough') {
         // Calculate relative positions (as percentages) for the bounding rectangles
         const containerRect = containerRef.current?.getBoundingClientRect()
-        const rects = containerRect ? textSelection.rects.map(rect => ({
-          left: ((rect.left - containerRect.left) / containerRect.width) * 100,
-          top: ((rect.top - containerRect.top) / containerRect.height) * 100,
-          width: (rect.width / containerRect.width) * 100,
-          height: (rect.height / containerRect.height) * 100,
-        })) : []
+        const rects = containerRect && containerRect.width > 0 && containerRect.height > 0
+          ? textSelection.rects.map(rect => ({
+              left: ((rect.left - containerRect.left) / containerRect.width) * 100,
+              top: ((rect.top - containerRect.top) / containerRect.height) * 100,
+              width: (rect.width / containerRect.width) * 100,
+              height: (rect.height / containerRect.height) * 100,
+            }))
+          : []
 
         onAnnotationCreate({
           type: selectedTool,
@@ -282,25 +284,48 @@ export function PdfAnnotationLayer({
               const containerRect = containerRef.current?.getBoundingClientRect()
               if (!containerRect) return null
 
+              const baseStyle = {
+                left: rect.left - containerRect.left,
+                top: rect.top - containerRect.top,
+                width: rect.width,
+                height: rect.height,
+              }
+
+              // Render strikethrough preview with flexbox (consistent with final rendering)
+              if (selectedTool === 'strikethrough') {
+                return (
+                  <div
+                    key={index}
+                    className="absolute flex items-center"
+                    style={{
+                      ...baseStyle,
+                      backgroundColor: 'transparent',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '2px',
+                        backgroundColor: getColorStyle(highlightColor, 'strikethrough', 0.9),
+                      }}
+                    />
+                  </div>
+                )
+              }
+
+              // Render highlight and underline preview
               return (
                 <div
                   key={index}
                   className="absolute"
                   style={{
-                    left: rect.left - containerRect.left,
-                    top: rect.top - containerRect.top,
-                    width: rect.width,
-                    height: rect.height,
-                    backgroundColor: getColorStyle(highlightColor, selectedTool),
-                    ...(selectedTool === 'underline' && {
-                      backgroundColor: 'transparent',
-                      borderBottom: `2px solid ${getColorStyle(highlightColor, 'underline')}`,
-                    }),
-                    ...(selectedTool === 'strikethrough' && {
-                      backgroundColor: 'transparent',
-                      borderTop: `2px solid ${getColorStyle(highlightColor, 'strikethrough')}`,
-                      marginTop: rect.height / 2,
-                    }),
+                    ...baseStyle,
+                    backgroundColor: selectedTool === 'highlight'
+                      ? getColorStyle(highlightColor, selectedTool)
+                      : 'transparent',
+                    borderBottom: selectedTool === 'underline'
+                      ? `2px solid ${getColorStyle(highlightColor, 'underline')}`
+                      : 'none',
                   }}
                 />
               )
