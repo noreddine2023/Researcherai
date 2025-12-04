@@ -28,6 +28,7 @@ export interface AnnotationCreate {
   positionY?: number
   startOffset?: number
   endOffset?: number
+  drawingData?: string
 }
 
 export function usePdfAnnotations(paperId: string) {

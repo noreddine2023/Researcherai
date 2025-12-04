@@ -17,6 +17,13 @@ interface PdfAnnotationLayerProps {
   containerRef: React.RefObject<HTMLDivElement>
 }
 
+interface HighlightRect {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
 export function PdfAnnotationLayer({
   pageNumber,
   annotations,
@@ -79,12 +86,24 @@ export function PdfAnnotationLayer({
 
     const createFromSelection = () => {
       if (selectedTool === 'highlight' || selectedTool === 'underline' || selectedTool === 'strikethrough') {
+        // Calculate relative positions (as percentages) for the bounding rectangles
+        const containerRect = containerRef.current?.getBoundingClientRect()
+        const rects = containerRect && containerRect.width > 0 && containerRect.height > 0
+          ? textSelection.rects.map(rect => ({
+              left: ((rect.left - containerRect.left) / containerRect.width) * 100,
+              top: ((rect.top - containerRect.top) / containerRect.height) * 100,
+              width: (rect.width / containerRect.width) * 100,
+              height: (rect.height / containerRect.height) * 100,
+            }))
+          : []
+
         onAnnotationCreate({
           type: selectedTool,
           content: textSelection.text,
           highlight: textSelection.text,
           color: highlightColor,
           pageNumber,
+          drawingData: JSON.stringify(rects),
         })
       }
       
@@ -94,7 +113,7 @@ export function PdfAnnotationLayer({
     }
 
     createFromSelection()
-  }, [textSelection, selectedTool, highlightColor, pageNumber, onAnnotationCreate])
+  }, [textSelection, selectedTool, highlightColor, pageNumber, onAnnotationCreate, containerRef])
 
   // Handle click for comment tool
   const handleLayerClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -131,18 +150,19 @@ export function PdfAnnotationLayer({
   }
 
   // Get color style for annotation
-  const getColorStyle = (color: string, type: string) => {
-    const opacity = type === 'highlight' ? '0.4' : '0.6'
+  const getColorStyle = (color: string, type: string, customOpacity?: number) => {
+    const opacity = customOpacity !== undefined ? customOpacity : (type === 'highlight' ? 0.4 : 0.6)
     
-    const colors: Record<string, string> = {
-      yellow: `rgba(255, 255, 0, ${opacity})`,
-      green: `rgba(0, 255, 0, ${opacity})`,
-      blue: `rgba(0, 150, 255, ${opacity})`,
-      pink: `rgba(255, 192, 203, ${opacity})`,
-      orange: `rgba(255, 165, 0, ${opacity})`,
+    const colorMap: Record<string, { r: number; g: number; b: number }> = {
+      yellow: { r: 255, g: 255, b: 0 },
+      green: { r: 0, g: 255, b: 0 },
+      blue: { r: 0, g: 150, b: 255 },
+      pink: { r: 255, g: 192, b: 203 },
+      orange: { r: 255, g: 165, b: 0 },
     }
     
-    return colors[color] || colors.yellow
+    const rgb = colorMap[color] || colorMap.yellow
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`
   }
 
   const pageAnnotations = annotations.filter(a => a.pageNumber === pageNumber)
@@ -157,6 +177,7 @@ export function PdfAnnotationLayer({
       >
         {/* Render existing annotations */}
         {pageAnnotations.map(annotation => {
+          // Render comment annotations
           if (annotation.type === 'comment' && annotation.positionX && annotation.positionY) {
             return (
               <div
@@ -179,6 +200,80 @@ export function PdfAnnotationLayer({
             )
           }
           
+          // Render highlight, underline, and strikethrough annotations
+          if ((annotation.type === 'highlight' || annotation.type === 'underline' || annotation.type === 'strikethrough') && annotation.drawingData) {
+            try {
+              const rects: HighlightRect[] = JSON.parse(annotation.drawingData)
+              return (
+                <div key={annotation.id} className="pointer-events-none">
+                  {rects.map((rect, index) => {
+                    const baseStyle = {
+                      left: `${rect.left}%`,
+                      top: `${rect.top}%`,
+                      width: `${rect.width}%`,
+                      height: `${rect.height}%`,
+                    }
+
+                    if (annotation.type === 'strikethrough') {
+                      // For strikethrough, create a thin line through the middle
+                      return (
+                        <div
+                          key={index}
+                          className="absolute pointer-events-auto cursor-pointer hover:opacity-80 transition-opacity flex items-center"
+                          style={{
+                            ...baseStyle,
+                            backgroundColor: 'transparent',
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onAnnotationClick?.(annotation)
+                          }}
+                          title={annotation.content}
+                        >
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '2px',
+                              backgroundColor: getColorStyle(annotation.color, 'strikethrough', 0.9),
+                            }}
+                          />
+                        </div>
+                      )
+                    }
+
+                    // For highlight and underline
+                    return (
+                      <div
+                        key={index}
+                        className="absolute pointer-events-auto cursor-pointer hover:opacity-80 transition-opacity"
+                        style={{
+                          ...baseStyle,
+                          backgroundColor: annotation.type === 'highlight' 
+                            ? getColorStyle(annotation.color, 'highlight') 
+                            : 'transparent',
+                          borderBottom: annotation.type === 'underline' 
+                            ? `2px solid ${getColorStyle(annotation.color, 'underline')}` 
+                            : 'none',
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onAnnotationClick?.(annotation)
+                        }}
+                        title={annotation.content}
+                      />
+                    )
+                  })}
+                </div>
+              )
+            } catch (e) {
+              console.error(
+                `Failed to parse annotation drawingData for annotation ${annotation.id} (type: ${annotation.type}):`,
+                e
+              )
+              return null
+            }
+          }
+          
           return null
         })}
 
@@ -189,25 +284,48 @@ export function PdfAnnotationLayer({
               const containerRect = containerRef.current?.getBoundingClientRect()
               if (!containerRect) return null
 
+              const baseStyle = {
+                left: rect.left - containerRect.left,
+                top: rect.top - containerRect.top,
+                width: rect.width,
+                height: rect.height,
+              }
+
+              // Render strikethrough preview with flexbox (consistent with final rendering)
+              if (selectedTool === 'strikethrough') {
+                return (
+                  <div
+                    key={index}
+                    className="absolute flex items-center"
+                    style={{
+                      ...baseStyle,
+                      backgroundColor: 'transparent',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '2px',
+                        backgroundColor: getColorStyle(highlightColor, 'strikethrough', 0.9),
+                      }}
+                    />
+                  </div>
+                )
+              }
+
+              // Render highlight and underline preview
               return (
                 <div
                   key={index}
                   className="absolute"
                   style={{
-                    left: rect.left - containerRect.left,
-                    top: rect.top - containerRect.top,
-                    width: rect.width,
-                    height: rect.height,
-                    backgroundColor: getColorStyle(highlightColor, selectedTool),
-                    ...(selectedTool === 'underline' && {
-                      backgroundColor: 'transparent',
-                      borderBottom: `2px solid ${getColorStyle(highlightColor, 'underline')}`,
-                    }),
-                    ...(selectedTool === 'strikethrough' && {
-                      backgroundColor: 'transparent',
-                      borderTop: `2px solid ${getColorStyle(highlightColor, 'strikethrough')}`,
-                      marginTop: rect.height / 2,
-                    }),
+                    ...baseStyle,
+                    backgroundColor: selectedTool === 'highlight'
+                      ? getColorStyle(highlightColor, selectedTool)
+                      : 'transparent',
+                    borderBottom: selectedTool === 'underline'
+                      ? `2px solid ${getColorStyle(highlightColor, 'underline')}`
+                      : 'none',
                   }}
                 />
               )
