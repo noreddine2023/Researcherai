@@ -203,33 +203,70 @@ export function PdfAnnotationLayer({
               const rects: HighlightRect[] = JSON.parse(annotation.drawingData)
               return (
                 <div key={annotation.id} className="pointer-events-none">
-                  {rects.map((rect, index) => (
-                    <div
-                      key={index}
-                      className="absolute pointer-events-auto cursor-pointer hover:opacity-80 transition-opacity"
-                      style={{
-                        left: `${rect.left}%`,
-                        top: `${rect.top}%`,
-                        width: `${rect.width}%`,
-                        height: `${rect.height}%`,
-                        backgroundColor: annotation.type === 'highlight' 
-                          ? getColorStyle(annotation.color, 'highlight') 
-                          : 'transparent',
-                        borderBottom: annotation.type === 'underline' 
-                          ? `2px solid ${getColorStyle(annotation.color, 'underline')}` 
-                          : 'none',
-                        ...(annotation.type === 'strikethrough' && {
-                          borderTop: `2px solid ${getColorStyle(annotation.color, 'strikethrough')}`,
-                          marginTop: '50%',
-                        }),
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onAnnotationClick?.(annotation)
-                      }}
-                      title={annotation.content}
-                    />
-                  ))}
+                  {rects.map((rect, index) => {
+                    const baseStyle = {
+                      left: `${rect.left}%`,
+                      top: `${rect.top}%`,
+                      width: `${rect.width}%`,
+                      height: `${rect.height}%`,
+                    }
+
+                    if (annotation.type === 'strikethrough') {
+                      // For strikethrough, create a thin line through the middle
+                      return (
+                        <div
+                          key={index}
+                          className="absolute pointer-events-auto cursor-pointer hover:opacity-80 transition-opacity flex items-center"
+                          style={{
+                            ...baseStyle,
+                            backgroundColor: 'transparent',
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onAnnotationClick?.(annotation)
+                          }}
+                          title={annotation.content}
+                        >
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '2px',
+                              backgroundColor: getColorStyle(annotation.color, 'strikethrough').replace(/rgba?\([\d,.\s]+,\s*[\d.]+\)/, (match) => {
+                                // Extract the RGB values and increase opacity for strikethrough
+                                const parts = match.match(/[\d.]+/g)
+                                if (parts) {
+                                  return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, 0.9)`
+                                }
+                                return match
+                              }),
+                            }}
+                          />
+                        </div>
+                      )
+                    }
+
+                    // For highlight and underline
+                    return (
+                      <div
+                        key={index}
+                        className="absolute pointer-events-auto cursor-pointer hover:opacity-80 transition-opacity"
+                        style={{
+                          ...baseStyle,
+                          backgroundColor: annotation.type === 'highlight' 
+                            ? getColorStyle(annotation.color, 'highlight') 
+                            : 'transparent',
+                          borderBottom: annotation.type === 'underline' 
+                            ? `2px solid ${getColorStyle(annotation.color, 'underline')}` 
+                            : 'none',
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onAnnotationClick?.(annotation)
+                        }}
+                        title={annotation.content}
+                      />
+                    )
+                  })}
                 </div>
               )
             } catch (e) {
