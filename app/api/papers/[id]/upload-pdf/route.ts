@@ -16,7 +16,7 @@ export async function POST(
     }
 
     // Validate paper ID format (should be a cuid)
-    if (!/^[a-z0-9]{25}$/i.test(params.id)) {
+    if (!/^[a-z0-9]{20,30}$/i.test(params.id)) {
       return NextResponse.json({ error: 'Invalid paper ID' }, { status: 400 })
     }
 
@@ -74,6 +74,11 @@ export async function POST(
     })
   } catch (error) {
     console.error('PDF upload error:', error)
+    // Log the full error details
+    if (error instanceof Error) {
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
     return NextResponse.json(
       { error: 'Failed to upload PDF' },
       { status: 500 }
