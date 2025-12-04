@@ -17,6 +17,13 @@ interface PdfAnnotationLayerProps {
   containerRef: React.RefObject<HTMLDivElement>
 }
 
+interface HighlightRect {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
 export function PdfAnnotationLayer({
   pageNumber,
   annotations,
@@ -193,10 +200,10 @@ export function PdfAnnotationLayer({
           // Render highlight, underline, and strikethrough annotations
           if ((annotation.type === 'highlight' || annotation.type === 'underline' || annotation.type === 'strikethrough') && annotation.drawingData) {
             try {
-              const rects = JSON.parse(annotation.drawingData)
+              const rects: HighlightRect[] = JSON.parse(annotation.drawingData)
               return (
                 <div key={annotation.id} className="pointer-events-none">
-                  {rects.map((rect: any, index: number) => (
+                  {rects.map((rect, index) => (
                     <div
                       key={index}
                       className="absolute pointer-events-auto cursor-pointer hover:opacity-80 transition-opacity"
@@ -213,7 +220,7 @@ export function PdfAnnotationLayer({
                           : 'none',
                         ...(annotation.type === 'strikethrough' && {
                           borderTop: `2px solid ${getColorStyle(annotation.color, 'strikethrough')}`,
-                          marginTop: `${rect.height / 2}%`,
+                          marginTop: '50%',
                         }),
                       }}
                       onClick={(e) => {
