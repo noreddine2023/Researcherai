@@ -148,18 +148,19 @@ export function PdfAnnotationLayer({
   }
 
   // Get color style for annotation
-  const getColorStyle = (color: string, type: string) => {
-    const opacity = type === 'highlight' ? '0.4' : '0.6'
+  const getColorStyle = (color: string, type: string, customOpacity?: number) => {
+    const opacity = customOpacity !== undefined ? customOpacity : (type === 'highlight' ? 0.4 : 0.6)
     
-    const colors: Record<string, string> = {
-      yellow: `rgba(255, 255, 0, ${opacity})`,
-      green: `rgba(0, 255, 0, ${opacity})`,
-      blue: `rgba(0, 150, 255, ${opacity})`,
-      pink: `rgba(255, 192, 203, ${opacity})`,
-      orange: `rgba(255, 165, 0, ${opacity})`,
+    const colorMap: Record<string, { r: number; g: number; b: number }> = {
+      yellow: { r: 255, g: 255, b: 0 },
+      green: { r: 0, g: 255, b: 0 },
+      blue: { r: 0, g: 150, b: 255 },
+      pink: { r: 255, g: 192, b: 203 },
+      orange: { r: 255, g: 165, b: 0 },
     }
     
-    return colors[color] || colors.yellow
+    const rgb = colorMap[color] || colorMap.yellow
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`
   }
 
   const pageAnnotations = annotations.filter(a => a.pageNumber === pageNumber)
@@ -231,14 +232,7 @@ export function PdfAnnotationLayer({
                             style={{
                               width: '100%',
                               height: '2px',
-                              backgroundColor: getColorStyle(annotation.color, 'strikethrough').replace(/rgba?\([\d,.\s]+,\s*[\d.]+\)/, (match) => {
-                                // Extract the RGB values and increase opacity for strikethrough
-                                const parts = match.match(/[\d.]+/g)
-                                if (parts) {
-                                  return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, 0.9)`
-                                }
-                                return match
-                              }),
+                              backgroundColor: getColorStyle(annotation.color, 'strikethrough', 0.9),
                             }}
                           />
                         </div>
@@ -270,7 +264,10 @@ export function PdfAnnotationLayer({
                 </div>
               )
             } catch (e) {
-              console.error('Failed to parse annotation drawingData:', e)
+              console.error(
+                `Failed to parse annotation drawingData for annotation ${annotation.id} (type: ${annotation.type}):`,
+                e
+              )
               return null
             }
           }
