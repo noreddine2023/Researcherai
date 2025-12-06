@@ -29,7 +29,7 @@ export function InsightCard({ insight, onUpdate }: InsightCardProps) {
   const handleAddTodo = () => {
     if (!newTodo.trim()) return
     const todo: InsightTodo = {
-      id: Date.now().toString(),
+      id: `todo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       text: newTodo,
       completed: false,
     }
@@ -49,7 +49,7 @@ export function InsightCard({ insight, onUpdate }: InsightCardProps) {
   const handleAddComment = () => {
     if (!newComment.trim()) return
     const comment: InsightComment = {
-      id: Date.now().toString(),
+      id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       user: 'You',
       content: newComment,
       timestamp: 'Just now',
