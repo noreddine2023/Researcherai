@@ -8,18 +8,19 @@ datasource db {
 }
 
 model User {
-  id            String          @id @default(cuid())
-  email         String          @unique
-  name          String?
-  password      String
-  image         String?
-  collections   Collection[]
-  papers        Paper[]
-  insights      InsightCard[]
-  annotations   Annotation[]
-  documents     Document[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id              String           @id @default(cuid())
+  email           String           @unique
+  name            String?
+  password        String
+  image           String?
+  collections     Collection[]
+  papers          Paper[]
+  insights        InsightCard[]
+  annotations     Annotation[]
+  documents       Document[]
+  insightComments InsightComment[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model Paper {
@@ -51,6 +52,7 @@ model Collection {
   id          String            @id @default(cuid())
   name        String
   description String?
+  color       String?           @default("bg-blue-500")
   parentId    String?
   parent      Collection?       @relation("CollectionHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children    Collection[]      @relation("CollectionHierarchy")
@@ -95,18 +97,20 @@ model Annotation {
 }
 
 model InsightCard {
-  id        String   @id @default(cuid())
+  id        String           @id @default(cuid())
   title     String
   content   String
-  type      String   @default("finding")
+  type      String           @default("finding")
   tags      String[]
-  status    String   @default("backlog")
+  status    String           @default("backlog")
   paperId   String?
-  paper     Paper?   @relation(fields: [paperId], references: [id], onDelete: SetNull)
+  paper     Paper?           @relation(fields: [paperId], references: [id], onDelete: SetNull)
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  todos     InsightTodo[]
+  comments  InsightComment[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 }
 
 model Citation {
@@ -126,4 +130,25 @@ model Document {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model InsightTodo {
+  id        String      @id @default(cuid())
+  text      String
+  completed Boolean     @default(false)
+  insightId String
+  insight   InsightCard @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model InsightComment {
+  id        String      @id @default(cuid())
+  content   String
+  insightId String
+  insight   InsightCard @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 }

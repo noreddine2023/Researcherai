@@ -31,6 +31,18 @@ export async function GET(request: Request) {
       },
       include: {
         paper: true,
+        todos: true,
+        comments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              }
+            }
+          }
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
